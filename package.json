@@ -27,11 +27,15 @@
   "engines": {
     "node": ">=18"
   },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "postbuild": "node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test npm/test/*.test.ts",
+    "prepublishOnly": "npm test",
     "prepack": "npm run check && npm run build",
     "start": "node dist/cli.js"
   },
