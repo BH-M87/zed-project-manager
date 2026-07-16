@@ -1,0 +1,4 @@
+interface:
+  display_name: "Setup Zed Project Manager"
+  short_description: "安装、配置并验证 Zed Project Manager"
+  default_prompt: "Use $setup-zed-project-manager to install and configure Project Manager in Zed, including shortcuts and verification."

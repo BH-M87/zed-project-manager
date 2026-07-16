@@ -19,6 +19,16 @@ zpm scan
 
 按快捷键后出现的是 Zed 集成终端中的可搜索选择器。完整的首次配置、唤醒方式、UI 交互和排障见 [使用指南](docs/usage.md)。
 
+### 让 Agent 完成安装
+
+仓库提供 [`$setup-zed-project-manager`](skills/setup-zed-project-manager/SKILL.md) skill。让支持 skills 的 Agent 在本仓库中执行：
+
+```text
+使用 $setup-zed-project-manager 帮我完成 Project Manager 的初始化安装，扫描目录是 ~/OwnDevWorkspaces
+```
+
+Agent 会安装并验证 CLI、初始化扫描配置、合并 Zed Tasks/keymap/MCP 设置，并通过真实 Zed UI 检查快捷键和项目选择器。它会保留已有的 Zed 配置，不会用示例文件覆盖整个用户配置。
+
 ## 能力与限制
 
 当前版本支持：
