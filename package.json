@@ -1,0 +1,50 @@
+{
+  "name": "zed-project-manager",
+  "version": "0.1.0",
+  "description": "Project discovery and MCP core for the Zed Project Manager extension",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BH-M87/zed-project-manager.git"
+  },
+  "keywords": [
+    "zed",
+    "project-manager",
+    "mcp",
+    "git"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "docs",
+    "zed",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "zpm": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "postbuild": "node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test npm/test/*.test.ts",
+    "prepack": "npm run check && npm run build",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "commander": "^11.0.0",
+    "minimatch": "^9.0.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/prompts": "^2.4.9",
+    "tsx": "^4.0.0",
+    "typescript": "^5.6.0"
+  }
+}

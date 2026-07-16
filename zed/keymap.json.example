@@ -1,0 +1,19 @@
+[
+  {
+    "context": "Workspace",
+    "bindings": {
+      "cmd-alt-o": [
+        "task::Spawn",
+        {
+          "task_name": "Project Manager: Switch (reuse)"
+        }
+      ],
+      "cmd-alt-shift-o": [
+        "task::Spawn",
+        {
+          "task_name": "Project Manager: Open in new window"
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "label": "Project Manager: Switch (reuse)",
+    "command": "zpm",
+    "args": ["open", "--reuse"],
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "hide": "on_success",
+    "save": "none"
+  },
+  {
+    "label": "Project Manager: Open in new window",
+    "command": "zpm",
+    "args": ["open", "--new"],
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "hide": "on_success",
+    "save": "none"
+  },
+  {
+    "label": "Project Manager: Refresh cache",
+    "command": "zpm",
+    "args": ["scan"],
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "hide": "on_success",
+    "save": "none"
+  }
+]

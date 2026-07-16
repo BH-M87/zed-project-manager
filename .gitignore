@@ -1,0 +1,9 @@
+/target/
+/node_modules/
+/dist/
+/cache/
+/extension.wasm
+
+*.log
+*.tgz
+.DS_Store
