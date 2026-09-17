@@ -8,7 +8,7 @@
 npm install
 npm run build
 npm link
-zpm init
+zpm init --interactive
 zpm scan
 ```
 
@@ -95,12 +95,16 @@ npm install -g zed-project-manager
 
 ## 配置
 
-先创建默认配置并查看实际路径：
+推荐使用分步向导创建或调整配置：
 
 ```sh
-zpm init
-zpm config-path
+zpm config              # 创建或编辑配置，已有值作为默认选项
+zpm init --interactive  # 首次安装也可以从这里进入同一个向导
 ```
+
+向导依次引导设置扫描目录、扫描深度、忽略规则、嵌套仓库和符号链接，并解释每个选项的作用。目录和忽略规则逐条输入，不需要给含空格的路径加引号；替换列表时输入空行结束。保存前会展示完整 JSON，中途按 Ctrl+C 或拒绝保存不会修改文件。未编辑的 `cachePath`、`zedBin` 等字段会保留。保存后执行 `zpm scan` 更新缓存。
+
+需要手动编辑或用于脚本时，仍可运行 `zpm init` 创建默认文件（不覆盖已有配置），再用 `zpm config-path` 查看路径。向导需要交互式终端，不从管道读取答案。
 
 默认配置位于 `~/.config/zed-project-manager/config.json`，默认缓存位于 `~/.cache/zed-project-manager/projects.json`。可通过 `ZPM_CONFIG` 指向另一份配置：
 
@@ -135,8 +139,8 @@ ZPM_CONFIG=~/dotfiles/zed-project-manager.json zpm scan
 - `roots`：要扫描的目录，可使用 `~`、`$HOME` 或 `${HOME}`；重复或重叠根目录会去重。
 - `maxDepth`：非负整数；根目录深度为 `0`。
 - `ignore`：按目录名或相对根目录的路径匹配 glob。
-- `nestedRepositories`：为 `false` 时发现仓库后不再向内扫描；为 `true` 时包含嵌套仓库。
-- `followSymlinks`：是否跟随指向目录的符号链接；默认关闭以减少循环和越界扫描风险。
+- `nestedRepositories`：默认 `false`，发现仓库后不再向内扫描，即使尚未达到 `maxDepth`。若有 `外层仓库/workspaces/内层仓库` 这样的结构，设为 `true` 才会继续发现内层仓库。
+- `followSymlinks`：默认 `false`，跳过扫描过程中遇到的目录符号链接；设为 `true` 时扫描链接目标，可能进入 roots 之外的目录。真实路径会去重以避免循环，深度和嵌套仓库规则仍然生效。
 - `cachePath`：项目缓存文件位置。
 - `zedBin`：`zed` 命令名或绝对路径。
 
@@ -146,6 +150,8 @@ ZPM_CONFIG=~/dotfiles/zed-project-manager.json zpm scan
 
 ```sh
 zpm init                         # 创建默认配置，不覆盖已有文件
+zpm init --interactive           # 分步配置（同 zpm config）
+zpm config                       # 引导创建或编辑扫描配置
 zpm config-path                  # 输出当前配置路径
 zpm scan                         # 扫描并更新缓存
 zpm scan --json                  # 输出扫描结果 JSON

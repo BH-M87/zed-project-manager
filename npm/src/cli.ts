@@ -3,6 +3,7 @@
 import { Command, Option } from "commander";
 import prompts from "prompts";
 import { getConfigPath, initializeConfig } from "./config.js";
+import { configureInteractively } from "./config-wizard.js";
 import { runMcpServer } from "./mcp.js";
 import { ProjectService } from "./project-service.js";
 import type { OpenMode, Project } from "./types.js";
@@ -87,12 +88,22 @@ export function createProgram(): Command {
 
   program.command("init")
     .description("Create the default configuration file")
-    .action(async () => {
+    .option("-i, --interactive", "Configure scanning step by step")
+    .action(async (options: { interactive?: boolean }) => {
+      if (options.interactive) {
+        await configureInteractively();
+        return;
+      }
       const result = await initializeConfig();
       process.stdout.write(result.created
         ? `Created configuration at ${result.path}\n`
         : `Configuration already exists at ${result.path}\n`);
+      process.stdout.write('Run "zpm config" for guided configuration.\n');
     });
+
+  program.command("config")
+    .description("Configure project scanning with a step-by-step wizard")
+    .action(async () => { await configureInteractively(); });
 
   program.command("config-path")
     .description("Print the active configuration path")

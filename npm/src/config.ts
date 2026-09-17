@@ -56,6 +56,10 @@ export async function loadConfig(configPath = getConfigPath()): Promise<ProjectM
     throw new Error(`Unable to read configuration at ${configPath}: ${(error as Error).message}`);
   }
 
+  return parseConfig(text, configPath);
+}
+
+export function parseConfig(text: string, configPath: string): ProjectManagerConfig {
   let raw: unknown;
   try {
     raw = JSON.parse(text);
