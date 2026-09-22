@@ -1,7 +1,7 @@
 id = "project-manager"
 name = "Project Manager"
 description = "Discover Git repositories and switch between them with a companion CLI and MCP server"
-version = "0.1.0"
+version = "0.2.0"
 schema_version = 1
 authors = ["BH-M87"]
 repository = "https://github.com/BH-M87/zed-project-manager"

@@ -7,7 +7,7 @@ use zed_extension_api::{
 };
 
 const NPM_PACKAGE_NAME: &str = "zed-project-manager";
-const NPM_PACKAGE_VERSION: &str = "0.1.0";
+const NPM_PACKAGE_VERSION: &str = "0.2.0";
 const DEFAULT_SETTINGS: &str = r#"{
   "binary_path": "",
   "config_path": ""

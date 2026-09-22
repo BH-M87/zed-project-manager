@@ -11,7 +11,7 @@ function textResult(value: unknown) {
 export async function runMcpServer(): Promise<void> {
   const service = await ProjectService.create();
   const server = new Server(
-    { name: "zed-project-manager", version: "0.1.0" },
+    { name: "zed-project-manager", version: "0.2.0" },
     { capabilities: { tools: {} } },
   );
 

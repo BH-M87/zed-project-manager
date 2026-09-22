@@ -84,7 +84,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("zpm")
     .description("Scan and switch between Git projects in Zed")
-    .version("0.1.0");
+    .version("0.2.0");
 
   program.command("init")
     .description("Create the default configuration file")

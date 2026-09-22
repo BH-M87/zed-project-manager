@@ -1,6 +1,6 @@
 {
   "name": "zed-project-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Project discovery and MCP core for the Zed Project Manager extension",
   "license": "MIT",
   "repository": {
