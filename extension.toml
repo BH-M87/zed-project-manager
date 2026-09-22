@@ -1,10 +1,10 @@
-id = "project-manager"
-name = "Project Manager"
+id = "mcp-server-project-manager"
+name = "Project Manager MCP Server"
 description = "Discover Git repositories and switch between them with a companion CLI and MCP server"
-version = "0.2.0"
+version = "0.3.0"
 schema_version = 1
 authors = ["BH-M87"]
 repository = "https://github.com/BH-M87/zed-project-manager"
 
-[context_servers.project-manager]
-name = "Project Manager"
+[context_servers.mcp-server-project-manager]
+name = "Project Manager MCP Server"

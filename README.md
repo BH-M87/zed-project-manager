@@ -1,8 +1,12 @@
-# Project Manager for Zed
+# Project Manager MCP Server
 
-在固定目录下递归发现 Git 仓库，并通过命令行或 Zed Agent 快速打开项目。项目借鉴 [VS Code Project Manager](https://github.com/alefragnani/vscode-project-manager) 的“自动检测仓库与快速切换”工作流，但实现方式遵循 Zed 当前公开的扩展能力。
+English | [简体中文](README.zh-CN.md)
 
-## 快速开始
+Discover Git repositories under configured directories and open them from a terminal, a Zed Task, or the Zed Agent. Inspired by [VS Code Project Manager](https://github.com/alefragnani/vscode-project-manager), this project provides automatic repository discovery and fast project switching using Zed's public extension APIs.
+
+This project is not yet listed in the Zed extension marketplace. Install the latest published CLI from npm, or build this checkout from source. If the checkout's npm version has not been published, test its development extension with a local build and the `binary_path` setting described below.
+
+## Quick start from source
 
 ```sh
 npm install
@@ -12,62 +16,67 @@ zpm init --interactive
 zpm scan
 ```
 
-然后把 [`zed/tasks.json.example`](zed/tasks.json.example) 合并到全局 `~/.config/zed/tasks.json`，把 [`zed/keymap.json.example`](zed/keymap.json.example) 合并到 `~/.config/zed/keymap.json`：
+Merge [`zed/tasks.json.example`](zed/tasks.json.example) into your global `~/.config/zed/tasks.json` and [`zed/keymap.json.example`](zed/keymap.json.example) into `~/.config/zed/keymap.json`:
 
-- `cmd-alt-o`：在当前窗口搜索并切换项目；
-- `cmd-alt-shift-o`：搜索项目并在新窗口打开。
+- `cmd-alt-o`: search for a project and open it in the current window.
+- `cmd-alt-shift-o`: search for a project and open it in a new window.
 
-按快捷键后出现的是 Zed 集成终端中的可搜索选择器。完整的首次配置、唤醒方式、UI 交互和排障见 [使用指南](docs/usage.md)。
+The searchable picker runs in Zed's integrated terminal. See the [usage guide](docs/usage.md) for setup, interaction, and troubleshooting.
 
-### 让 Agent 完成安装
+### Agent-assisted setup
 
-仓库提供 [`$setup-zed-project-manager`](skills/setup-zed-project-manager/SKILL.md) skill。让支持 skills 的 Agent 在本仓库中执行：
+The repository includes a [`setup-zed-project-manager`](skills/setup-zed-project-manager/SKILL.md) skill. In an agent that supports skills, run it from this repository:
 
 ```text
-使用 $setup-zed-project-manager 帮我完成 Project Manager 的初始化安装，扫描目录是 ~/OwnDevWorkspaces
+Use $setup-zed-project-manager to set up Project Manager and scan ~/OwnDevWorkspaces.
 ```
 
-Agent 会安装并验证 CLI、初始化扫描配置、合并 Zed Tasks/keymap/MCP 设置，并通过真实 Zed UI 检查快捷键和项目选择器。它会保留已有的 Zed 配置，不会用示例文件覆盖整个用户配置。
+The skill guides CLI installation and verification, initializes the scanning configuration, merges Zed Tasks, key bindings, and MCP settings, and checks the shortcuts and picker in Zed. Existing Zed settings are preserved instead of replacing entire configuration files with examples.
 
-## 能力与限制
+## Features and limits
 
-当前版本支持：
+- Scan one or more roots, recognizing both `.git/` directories and Git worktree `.git` files.
+- Configure scan depth, ignore patterns, nested repositories, and directory symlinks.
+- Cache discovered projects and their last-opened timestamps.
+- Use the `zed` CLI to reuse a window, open a new window, or add a project to the current workspace.
+- Expose project listing, refresh, and opening tools to the Zed Agent over stdio MCP.
+- Choose projects with a searchable terminal picker.
 
-- 扫描一个或多个根目录，识别普通 `.git/` 目录与 Git worktree 的 `.git` 文件；
-- 配置扫描深度、忽略规则、是否继续扫描嵌套仓库；
-- 缓存项目列表与最近打开时间；
-- 用 `zed` CLI 在当前窗口、新窗口或当前 workspace 中打开项目；
-- 通过 stdio MCP 向 Zed Agent 提供列出、刷新和打开项目的工具；
-- 在终端中使用可搜索的交互式项目选择器。
+This is not a feature-for-feature port of the VS Code extension. Zed extension code runs in WebAssembly, and its public APIs do not provide a native Quick Pick or Project Manager sidebar for this workflow. The project uses a Rust/Wasm extension to launch a local Node.js CLI/MCP server. The interactive picker is a **terminal UI, not a native Zed Quick Pick**.
 
-这不是 VS Code 扩展的逐项移植。Zed 的扩展代码运行在 WebAssembly 中，官方扩展 API 目前主要提供语言、主题、调试器、片段和 MCP server 等能力，不能创建 VS Code 式的原生 Quick Pick、Project Manager 侧边栏或任意宿主文件系统扫描器。因此本项目采用“Zed MCP 扩展 + 本机 Node.js CLI/MCP server”的架构；交互选择发生在终端，**不要把它描述成 Zed 原生 Quick Pick**。
-
-## 架构
+## Architecture
 
 ```text
 Zed Agent
    │ MCP tools
    ▼
-Rust/Wasm 扩展 ── 启动 `zpm mcp`
-                         │
-                         ├─ 读取配置、扫描 Git 仓库
-                         ├─ 读写项目缓存
-                         └─ 调用 `zed` CLI 打开项目
+Rust/Wasm extension ── launches `zpm mcp`
+                              │
+                              ├─ reads configuration and scans Git repositories
+                              ├─ reads and writes the project cache
+                              └─ invokes the `zed` CLI to open projects
 
-终端 / Zed Task ────────► `zpm` CLI
+Terminal / Zed Task ─────────► `zpm` CLI
 ```
 
-Rust 扩展只负责向 Zed 注册 `project-manager` context server，并安装/启动与扩展同版本的 npm 包。实际文件系统访问和进程启动均由 Node.js 进程完成。开发时也可用 `binary_path` 指向本地构建的 `zpm`。
+The Rust extension registers the `mcp-server-project-manager` context server and installs/launches the npm package at the extension's exact version. Filesystem access and process execution happen in Node.js. Set `binary_path` to a locally built `zpm` during development to bypass automatic npm installation.
 
-## 环境要求
+## Requirements
 
-- Node.js 18 或更高版本；
-- 已安装 Zed，并能在终端执行 `zed`；
-- 开发 Zed 扩展时，Rust 必须通过 [rustup](https://rustup.rs/) 安装。Zed 官方文档明确指出，只有 Homebrew Rust 时无法安装 dev extension。
+- Node.js 18 or later.
+- Zed installed, with the `zed` command available in your terminal.
+- For extension development: Rust with the `wasm32-wasip2` target. [rustup](https://rustup.rs/) is recommended for managing toolchains and targets. Having a Homebrew `cargo` or `rustc` alone does not establish that the required Wasm target is installed. See the [publishing guide](docs/publishing.md) for build instructions.
 
-## 安装 CLI
+## Install the CLI
 
-从源码开发时：
+For the currently published CLI:
+
+```sh
+npm install -g zed-project-manager
+zpm --help
+```
+
+For this source checkout and its development extension:
 
 ```sh
 npm install
@@ -76,7 +85,7 @@ npm link
 zpm --help
 ```
 
-不想使用 link，也可以从已构建的本地 checkout 全局安装：
+If you prefer not to use a link, install the built checkout globally:
 
 ```sh
 npm install
@@ -85,34 +94,28 @@ npm install -g .
 zpm --help
 ```
 
-npm 包正式发布后可改用：
+Global installation provides the terminal picker and Zed Tasks. When `binary_path` is unset, the extension installs its exact npm version independently of the global installation. That version must already exist on npm; use the source build override while testing an unpublished version.
+
+## Configuration
+
+Use the step-by-step wizard to create or edit your configuration:
 
 ```sh
-npm install -g zed-project-manager
+zpm config              # Create or edit configuration using current values as defaults
+zpm init --interactive  # Enter the same wizard during first-time setup
 ```
 
-全局安装用于终端选择器和 Zed Task。Marketplace 版 MCP 扩展会自行安装 manifest 对应的精确 npm 版本，不依赖全局安装。
+The wizard explains scan roots, depth, ignore rules, nested repositories, and symlinks. Enter roots and ignore patterns one per prompt; do not add quotes around paths containing spaces. Finish a replacement list with an empty entry. Review the complete JSON before saving. Ctrl-C or declining to save leaves the original file unchanged, and unrelated fields such as `cachePath` and `zedBin` are preserved. Run `zpm scan` afterward to refresh the cache.
 
-## 配置
+For scripts or manual setup, `zpm init` creates a default configuration without overwriting an existing file, and `zpm config-path` prints its location. The wizard requires an interactive terminal and does not read answers from a pipe.
 
-推荐使用分步向导创建或调整配置：
-
-```sh
-zpm config              # 创建或编辑配置，已有值作为默认选项
-zpm init --interactive  # 首次安装也可以从这里进入同一个向导
-```
-
-向导依次引导设置扫描目录、扫描深度、忽略规则、嵌套仓库和符号链接，并解释每个选项的作用。目录和忽略规则逐条输入，不需要给含空格的路径加引号；替换列表时输入空行结束。保存前会展示完整 JSON，中途按 Ctrl+C 或拒绝保存不会修改文件。未编辑的 `cachePath`、`zedBin` 等字段会保留。保存后执行 `zpm scan` 更新缓存。
-
-需要手动编辑或用于脚本时，仍可运行 `zpm init` 创建默认文件（不覆盖已有配置），再用 `zpm config-path` 查看路径。向导需要交互式终端，不从管道读取答案。
-
-默认配置位于 `~/.config/zed-project-manager/config.json`，默认缓存位于 `~/.cache/zed-project-manager/projects.json`。可通过 `ZPM_CONFIG` 指向另一份配置：
+The default configuration is `~/.config/zed-project-manager/config.json`; the default cache is `~/.cache/zed-project-manager/projects.json`. Override the configuration path with `ZPM_CONFIG`:
 
 ```sh
 ZPM_CONFIG=~/dotfiles/zed-project-manager.json zpm scan
 ```
 
-配置示例：
+Example configuration:
 
 ```json
 {
@@ -136,52 +139,53 @@ ZPM_CONFIG=~/dotfiles/zed-project-manager.json zpm scan
 }
 ```
 
-- `roots`：要扫描的目录，可使用 `~`、`$HOME` 或 `${HOME}`；重复或重叠根目录会去重。
-- `maxDepth`：非负整数；根目录深度为 `0`。
-- `ignore`：按目录名或相对根目录的路径匹配 glob。
-- `nestedRepositories`：默认 `false`，发现仓库后不再向内扫描，即使尚未达到 `maxDepth`。若有 `外层仓库/workspaces/内层仓库` 这样的结构，设为 `true` 才会继续发现内层仓库。
-- `followSymlinks`：默认 `false`，跳过扫描过程中遇到的目录符号链接；设为 `true` 时扫描链接目标，可能进入 roots 之外的目录。真实路径会去重以避免循环，深度和嵌套仓库规则仍然生效。
-- `cachePath`：项目缓存文件位置。
-- `zedBin`：`zed` 命令名或绝对路径。
+- `roots`: directories to scan; supports `~`, `$HOME`, and `${HOME}`. Duplicate or overlapping roots are deduplicated.
+- `maxDepth`: a nonnegative integer; a root is at depth `0`.
+- `ignore`: glob patterns matching directory names or paths relative to a root.
+- `nestedRepositories`: defaults to `false`, so finding a repository stops descent into that directory even when the depth limit has not been reached. Enable it to discover layouts such as `outer-repository/workspaces/inner-repository`.
+- `followSymlinks`: defaults to `false`. Enable it to scan directory symlink targets, which may be outside the configured roots. Real paths are deduplicated to prevent loops; depth and nested-repository rules still apply.
+- `cachePath`: location of the project cache.
+- `zedBin`: the `zed` command name or an absolute path to it.
 
-缺失或不可访问的 root 会作为 warning 输出，不会让其他 root 的扫描中断。
+Missing or inaccessible roots produce warnings without interrupting scans of other roots.
 
-## CLI 命令
+## CLI commands
 
 ```sh
-zpm init                         # 创建默认配置，不覆盖已有文件
-zpm init --interactive           # 分步配置（同 zpm config）
-zpm config                       # 引导创建或编辑扫描配置
-zpm config-path                  # 输出当前配置路径
-zpm scan                         # 扫描并更新缓存
-zpm scan --json                  # 输出扫描结果 JSON
-zpm list                         # 列出缓存项目
-zpm list --refresh --json        # 先刷新，再输出 JSON
-zpm open                         # 在终端交互选择项目
-zpm open <名称或路径>            # 精确或唯一模糊匹配
-zpm open <项目> --reuse          # 当前窗口打开（默认）
-zpm open <项目> --new            # 新窗口打开
-zpm open <项目> --add            # 加入当前 workspace
-zpm open <项目> --dry-run        # 只打印命令，不启动 Zed
-zpm open <项目> --zed-bin /path/to/zed
-zpm mcp                          # 以 stdio 运行 MCP server
+zpm init                         # Create default configuration without overwriting
+zpm init --interactive           # Guided configuration, equivalent to zpm config
+zpm config                       # Create or edit scanning configuration interactively
+zpm config-path                  # Print the active configuration path
+zpm scan                         # Scan and update the cache
+zpm scan --json                  # Print scan results as JSON
+zpm list                         # List cached projects
+zpm list --refresh --json        # Refresh first, then print JSON
+zpm open                         # Choose a project in the terminal
+zpm open <name-or-path>           # Exact or unambiguous fuzzy match
+zpm open <project> --reuse        # Reuse the current window (default)
+zpm open <project> --new          # Open a new window
+zpm open <project> --add          # Add to the current workspace
+zpm open <project> --dry-run      # Print the command without starting Zed
+zpm open <project> --zed-bin /path/to/zed
+zpm mcp                          # Run the MCP server over stdio
 ```
 
-首次使用建议执行 `zpm scan`。`open` 会读取缓存；查询匹配多个项目时会报出候选项，要求使用完整名称或路径。
+Run `zpm scan` before first use. `open` reads the cache; if a query matches multiple projects, it reports the candidates and asks for a full name or path.
 
-## 在 Zed 中安装 dev extension
+## Install the development extension in Zed
 
-1. 完成上面的 CLI 构建与 `npm link`，再用 `command -v zpm` 取得绝对路径。
-2. 在 Zed 打开 Extensions 页面，点击 **Install Dev Extension**；也可以运行 `zed: install dev extension`。
-3. 选择本仓库根目录，即包含 `extension.toml` 的目录。
-4. 打开 **Settings → AI → MCP Servers**，确认 `project-manager` 的状态为绿色。
+1. Build and link the CLI as above. Run `command -v zpm` to obtain its absolute path.
+2. Add the settings below using that path to run the local build. This is required if the checkout's npm version has not been published and also avoids differences between your shell's `PATH` and the GUI application's environment.
+3. Open Extensions in Zed and select **Install Dev Extension**, or run `zed: install dev extension` from the Command Palette.
+4. Select this repository's root directory, containing `extension.toml`.
+5. Open **Settings → AI → MCP Servers** and confirm that `mcp-server-project-manager` (Project Manager MCP Server) starts successfully.
 
-从源码安装 dev extension 时，在 Zed settings 中使用刚才取得的绝对路径，避免 GUI Zed 与 login shell 的 `PATH` 不一致：
+Merge this object into your Zed settings, preserving other servers and settings:
 
 ```json
 {
   "context_servers": {
-    "project-manager": {
+    "mcp-server-project-manager": {
       "settings": {
         "binary_path": "/absolute/path/to/zpm",
         "config_path": "/absolute/path/to/config.json"
@@ -191,45 +195,51 @@ zpm mcp                          # 以 stdio 运行 MCP server
 }
 ```
 
-`binary_path` 默认为空：正式安装时由扩展下载并通过 Node.js 启动固定版本的 npm 包；开发时设置它会覆盖自动安装逻辑。`config_path` 留空时使用 CLI 默认位置，非空时会作为 `ZPM_CONFIG` 传给 MCP server。排障时可运行 `zed: open log`，或从终端执行 `zed --foreground` 查看扩展输出。
+With an empty `binary_path`, the extension downloads the matching npm version and launches it with Node.js. A nonempty path overrides that behavior. An empty `config_path` uses the CLI default; a nonempty path is passed to the MCP server as `ZPM_CONFIG`. For diagnostics, run `zed: open log` or start Zed with `zed --foreground`.
 
-## MCP 工具
+### Migrate from the 0.2.0 development extension
 
-安装并启用后，在 Zed Agent 中可以使用：
+Version `0.3.0` changes both the extension ID and the context server key from `project-manager` to `mcp-server-project-manager`. Its display name becomes **Project Manager MCP Server**.
 
-- `list_projects`：读取缓存；可传 `refresh: true` 先扫描；
-- `refresh_projects`：重新扫描并覆盖缓存；
-- `open_project`：按名称或路径打开项目，支持 `reuse`、`new`、`add` 与 `dryRun`。
+Back up your Zed settings, then move the **entire existing object** at `context_servers.project-manager` to `context_servers.mcp-server-project-manager`. Preserve every field, including `settings`, `binary_path`, `config_path`, and any other existing values. If the destination key already exists, reconcile its fields before replacing anything.
 
-Zed 默认会在执行工具前请求批准。可以在 **Settings → AI → MCP Servers** 查看运行状态，并在对话中明确提到 `project-manager` 以帮助模型选择对应工具。
+Install the new development extension and verify that the new server starts. Then uninstall the old `project-manager` development extension and remove its obsolete settings entry to avoid running duplicate servers. The npm package name `zed-project-manager`, the `zpm` command, configuration and cache locations, MCP tool names, Zed Task labels, and key bindings remain unchanged. Project data does not need migration.
 
-## 用 Zed Task 快速操作
+## MCP tools
 
-快捷键依赖全局 `~/.config/zed/tasks.json` 中存在同名任务。运行 `zed: open tasks`，将 [`zed/tasks.json.example`](zed/tasks.json.example) 中的任务合并进去；如果全局文件尚不存在，也可以在仓库根目录执行：
+Once the extension is enabled, the Zed Agent can use:
+
+- `list_projects`: read the cache, optionally scanning first with `refresh: true`.
+- `refresh_projects`: scan again and replace the cache.
+- `open_project`: open by name or path, with `reuse`, `new`, or `add` mode and a `dryRun` option.
+
+Tool approval depends on your Zed permissions settings. Check server status in **Settings → AI → MCP Servers** and mention `mcp-server-project-manager` in your request to help the Agent select its tools.
+
+## Zed Tasks and shortcuts
+
+Shortcuts require matching tasks in the global `~/.config/zed/tasks.json`. Run `zed: open tasks` and merge the three objects from [`zed/tasks.json.example`](zed/tasks.json.example). If the global file does not exist, you can copy the example from the repository root:
 
 ```sh
 mkdir -p ~/.config/zed
 cp zed/tasks.json.example ~/.config/zed/tasks.json
 ```
 
-已有 `tasks.json` 时不要覆盖，应合并三个任务对象。再将 [`zed/keymap.json.example`](zed/keymap.json.example) 中的 binding 合并到 Zed keymap。任务 label 与快捷键中的 `task_name` 必须完全一致。
+Do not overwrite an existing task file. Merge the bindings from [`zed/keymap.json.example`](zed/keymap.json.example) into your keymap. Each binding's `task_name` must exactly match the task's `label`.
 
-也可以通过 Command Palette 的 `task: spawn` 手动选择任务。交互发生在 Zed 集成终端：输入项目名/路径过滤，方向键选择，Enter 打开，Ctrl-C 取消。详见 [使用指南](docs/usage.md)。
+You can also choose a task manually through `task: spawn`. In the integrated terminal picker, type a project name or path to filter, use the arrow keys to select, press Enter to open, or Ctrl-C to cancel. See the [usage guide](docs/usage.md).
 
-## 发布前事项
+## Publishing
 
-- 在 macOS、Linux 与 Windows 上验证扫描、路径和 `zed` CLI 参数；
-- 验证仓库现有 MIT `LICENSE` 能通过 Zed 的许可证检查；自 2025-10-01 起，发布扩展必须包含受支持的许可证文件；
-- 确认 `extension.toml` 的唯一 ID 与版本。ID 发布后不可修改，且 ID/名称不能包含 `zed` 或 `extension`；
-- 先发布与 manifest 完全同版本的 npm 包，并验证全新环境的全局安装与扩展自动安装；
-- 本地安装 dev extension，验证三个 MCP 工具和失败提示；
-- 向 `zed-industries/extensions` 提交时使用公开仓库和 HTTPS submodule URL，并同步 manifest 版本；
-- Zed 已宣布计划以官方 MCP Registry 取代 MCP server extensions，因此还应把 Node MCP server 发布到 [官方 MCP Registry](https://registry.modelcontextprotocol.io/)，并跟踪迁移进度。
+The [publishing guide](docs/publishing.md) covers version synchronization, build validation, npm publication, development-extension testing, and submission to [`zed-industries/extensions`](https://github.com/zed-industries/extensions). npm publication and acceptance into the Zed marketplace are separate steps; verify each release's status independently.
 
-## 参考
+Before submission, validate scanning, paths, and `zed` CLI arguments on macOS, Linux, and Windows; verify the MIT license, unique extension ID, and matching versions; publish the exact npm version before testing automatic installation; and test all three MCP tools and failure messages in Zed. Marketplace submissions use a public repository and an HTTPS submodule URL. Extension IDs cannot be changed after publication, and must meet the official naming requirements.
 
-- [Zed：Developing Extensions](https://zed.dev/docs/extensions/developing-extensions)
-- [Zed：MCP Server Extensions](https://zed.dev/docs/extensions/mcp-extensions)
-- [Zed：Model Context Protocol](https://zed.dev/docs/ai/mcp)
-- [Zed：Tasks](https://zed.dev/docs/tasks)
+Zed has announced plans to replace MCP server extensions with the official [MCP Registry](https://registry.modelcontextprotocol.io/). Track that transition and plan a separate registry submission for the Node MCP server.
+
+## References
+
+- [Zed: Developing Extensions](https://zed.dev/docs/extensions/developing-extensions)
+- [Zed: MCP Server Extensions](https://zed.dev/docs/extensions/mcp-extensions)
+- [Zed: Model Context Protocol](https://zed.dev/docs/ai/mcp)
+- [Zed: Tasks](https://zed.dev/docs/tasks)
 - [VS Code Project Manager](https://github.com/alefragnani/vscode-project-manager)

@@ -27,7 +27,7 @@ Treat setup as complete only when all applicable checks pass:
 - `zpm scan` succeeds and `zpm list` returns the expected repositories.
 - Zed has the three Project Manager tasks and the shortcut targets match their labels exactly.
 - `cmd-alt-o` opens the terminal project picker; cancel before switching unless the user named a target.
-- The `project-manager` MCP server is enabled and uses the same persistent config.
+- The `mcp-server-project-manager` MCP server is enabled and uses the same persistent config.
 
 Report any check that could not be performed instead of presenting partial setup as complete.
 
@@ -118,14 +118,16 @@ The picker is a searchable terminal UI, not a native Zed Quick Pick. It appears 
 
 ## 5. Configure the extension and MCP server
 
-For source development, install the repository as a Zed dev extension from the Extensions page by selecting the repository root containing `extension.toml`. Zed requires Rust installed through rustup to compile dev extensions. Do not substitute a Homebrew-only Rust toolchain when Zed rejects it.
+For source development, install the repository as a Zed dev extension from the Extensions page by selecting the repository root containing `extension.toml`. Prefer Rust installed through rustup; the repository's `rust-toolchain.toml` selects Rust 1.90.0, rustfmt, and `wasm32-wasip2`. A different toolchain installation must provide that target itself. Keep the Rust installation in persistent storage, never under `/tmp`.
+
+When upgrading from the 0.2.x dev extension, move the existing `context_servers.project-manager` object to `context_servers.mcp-server-project-manager`, preserving every field. If both keys exist with conflicting values, ask which settings to keep; do not silently overwrite either. Once the new server works, uninstall the old `project-manager` dev extension to avoid duplicate servers. The npm package name, `zpm` command, scan config/cache paths, tasks, and shortcuts stay unchanged.
 
 Merge this shape into Zed `settings.json`, using discovered absolute paths and preserving other settings:
 
 ```json
 {
   "context_servers": {
-    "project-manager": {
+    "mcp-server-project-manager": {
       "enabled": true,
       "remote": false,
       "settings": {
@@ -146,8 +148,8 @@ Use Zed itself when UI control is available:
 1. Open `Run -> Spawn Task` or run `task: spawn` and confirm all three task labels appear.
 2. Press `cmd-alt-o` and confirm the bottom terminal shows `Open project` with scanned repositories.
 3. Type a short filter, verify filtering, then cancel with Ctrl-C before a real switch unless the user requested one.
-4. Open `Settings -> AI -> MCP Servers` and confirm `project-manager` is enabled without a startup error.
-5. When useful, ask the Agent Panel to list projects through `project-manager`; do not approve a real `open_project` call merely as a smoke test.
+4. Open `Settings -> AI -> MCP Servers` and confirm `mcp-server-project-manager` is enabled without a startup error.
+5. When useful, ask the Agent Panel to list projects through `mcp-server-project-manager`; do not approve a real `open_project` call merely as a smoke test.
 
 If the shortcut does nothing, test `task: spawn` first:
 

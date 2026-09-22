@@ -1,6 +1,6 @@
 {
   "name": "zed-project-manager",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Project discovery and MCP core for the Zed Project Manager extension",
   "license": "MIT",
   "repository": {
@@ -19,6 +19,7 @@
     "docs",
     "zed",
     "README.md",
+    "README.zh-CN.md",
     "LICENSE"
   ],
   "bin": {
@@ -33,7 +34,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "postbuild": "node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
-    "check": "tsc -p tsconfig.json --noEmit",
+    "check": "npm run check:release && tsc -p tsconfig.json --noEmit",
+    "check:release": "node scripts/check-release.mjs",
     "test": "tsx --test npm/test/*.test.ts",
     "prepublishOnly": "npm test",
     "prepack": "npm run check && npm run build",

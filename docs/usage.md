@@ -1,14 +1,16 @@
-# 使用 Project Manager
+# Using Project Manager
 
-Project Manager 有三种入口：Zed Task、Zed Agent/MCP 和终端 CLI。日常切换项目推荐使用 Zed Task，因为它可以绑定快捷键，并在 Zed 集成终端中显示可搜索的项目选择器。
+English | [简体中文](usage.zh-CN.md) | [Project overview](../README.md)
 
-> 这里的选择器是终端 UI，不是 Zed 原生 Quick Pick。Zed 当前的扩展 API 不能注册原生命令面板项目、Quick Pick 或项目切换窗口。
+Project Manager has three entry points: Zed Tasks, the Zed Agent through MCP, and the terminal CLI. Zed Tasks are convenient for everyday switching because they support keyboard shortcuts and open a searchable project picker in Zed's integrated terminal.
 
-## 首次配置
+The picker is a terminal UI, not a native Zed Quick Pick. Zed's public extension API does not expose a native project-switching picker for this workflow.
 
-### 1. 安装 CLI
+## First-time setup
 
-从仓库源码安装：
+### 1. Install the CLI
+
+To test this source checkout and its development extension:
 
 ```sh
 npm install
@@ -17,29 +19,31 @@ npm link
 zpm --version
 ```
 
-如果 npm 包已经发布，也可以执行：
+To install the latest published CLI:
 
 ```sh
 npm install -g zed-project-manager
 ```
 
-### 2. 配置扫描目录
+This project is not yet listed in the official extension marketplace. To test a local build, set an absolute `binary_path` pointing to it in Zed settings; this is required if the checkout's npm version has not been published. Once the matching npm version is available, leave `binary_path` empty to test the extension's automatic installation. Installing the CLI globally does not validate the extension's installation path.
+
+### 2. Configure scan roots
 
 ```sh
 zpm config
 ```
 
-向导会读取已有配置；没有配置文件时使用默认值。依次完成：
+The wizard loads your current configuration, or defaults if no configuration file exists. It walks through:
 
-1. **扫描目录**：确认当前目录列表，或选择替换，逐条输入路径，最后以空行结束。支持 `~`、`$HOME`、`${HOME}`，含空格的路径不加引号。
-2. **扫描深度**：根目录为 0，直接子目录为 1，`根目录/分组/项目` 为 2。
-3. **忽略规则**：默认跳过 `node_modules`、`.git`、`target`、`dist`、`build`，可逐条替换为目录名或 glob。替换时直接输入空行可清空自定义忽略规则，但 `.git` 始终不进入扫描。
-4. **嵌套仓库**：默认关闭，发现外层仓库就停止向内扫描。若项目放在 `外层仓库/workspaces/内层仓库` 中，需要打开；单纯增大扫描深度无效。
-5. **符号链接**：默认关闭。若项目通过目录软链接放在扫描目录下，需要打开；开启后仍受扫描深度、忽略规则和嵌套仓库选项限制。
+1. **Scan roots:** keep the current list or replace it by entering paths one at a time, followed by an empty entry. `~`, `$HOME`, and `${HOME}` are supported. Do not quote paths containing spaces.
+2. **Scan depth:** a root has depth 0, its immediate children have depth 1, and `root/group/project` has depth 2.
+3. **Ignore patterns:** defaults skip `node_modules`, `.git`, `target`, `dist`, and `build`. Replace them with directory names or glob patterns. An empty replacement list clears custom ignores, but `.git` is never traversed.
+4. **Nested repositories:** disabled by default; discovering a repository stops descent. Enable this for `outer-repository/workspaces/inner-repository`. Increasing depth alone will not discover the inner repository.
+5. **Directory symlinks:** disabled by default. Enable this if projects are reached through directory symlinks. Depth, ignore, and nested-repository rules still apply, and targets can be outside your scan roots.
 
-最后检查 JSON 并确认保存。Ctrl+C 或拒绝保存都不会改动原文件，`cachePath`、`zedBin` 等其他字段会原样保留。向导不会自动扫描，保存后运行下面的 `zpm scan` 更新缓存。
+Review the JSON and confirm before saving. Ctrl-C or declining to save leaves the original file untouched. Other fields such as `cachePath` and `zedBin` are preserved. Saving does not automatically scan; run `zpm scan` afterward.
 
-首次安装也可以用 `zpm init --interactive` 进入同一个向导。脚本中仍使用非交互的 `zpm init` 创建默认文件，用 `zpm config-path` 查看文件位置，再手动编辑。配置示例：
+You can also enter the same wizard with `zpm init --interactive`. For scripts, use the noninteractive `zpm init` to create defaults without overwriting an existing file, then `zpm config-path` to locate it for editing. The wizard needs an interactive terminal. Example configuration:
 
 ```json
 {
@@ -60,116 +64,121 @@ zpm config
 }
 ```
 
-首次扫描并确认项目列表：
+Scan and confirm the project list:
 
 ```sh
 zpm scan
 zpm list
 ```
 
-### 3. 注册 Zed Tasks
+### 3. Register Zed Tasks
 
-快捷键绑定的不是扩展命令，而是全局 Zed Task。全局任务文件位于：
+The shortcuts launch global Zed Tasks. The global task file is:
 
 ```text
 ~/.config/zed/tasks.json
 ```
 
-如果这个文件还不存在，可以直接复制仓库示例：
+If it does not exist, copy the example from the repository root:
 
 ```sh
 mkdir -p ~/.config/zed
 cp zed/tasks.json.example ~/.config/zed/tasks.json
 ```
 
-如果文件已经存在，不要覆盖；把 [`zed/tasks.json.example`](../zed/tasks.json.example) 中的三个对象合并到现有 JSON 数组。
+If it already exists, merge the three objects from [`zed/tasks.json.example`](../zed/tasks.json.example) into its JSON array without replacing existing tasks.
 
-也可以在 Zed 中打开 Command Palette，运行 `zed: open tasks`，再粘贴任务配置。保存后运行 `task: spawn`，应该能看到：
+Alternatively, open the Command Palette, run `zed: open tasks`, and merge the task configuration there. Save and run `task: spawn`; you should see:
 
 - `Project Manager: Switch (reuse)`
 - `Project Manager: Open in new window`
 - `Project Manager: Refresh cache`
 
-如果这里看不到这些任务，快捷键也不会生效。
+The shortcuts will not work unless the corresponding tasks are available.
 
-### 4. 注册快捷键
+### 4. Register keyboard shortcuts
 
-打开 Command Palette，运行 `zed: open keymap file`，把 [`zed/keymap.json.example`](../zed/keymap.json.example) 中的 binding 合并到现有 `keymap.json` 数组。
+Run `zed: open keymap file` from the Command Palette and merge the bindings from [`zed/keymap.json.example`](../zed/keymap.json.example) into the existing keymap array.
 
-macOS 默认建议：
+Suggested macOS shortcuts:
 
-| 快捷键 | 行为 |
+| Shortcut | Action |
 | --- | --- |
-| `cmd-alt-o` | 搜索项目，并在当前 Zed 窗口中替换 workspace |
-| `cmd-alt-shift-o` | 搜索项目，并在新 Zed 窗口中打开 |
+| `cmd-alt-o` | Search projects and replace the current Zed workspace |
+| `cmd-alt-shift-o` | Search projects and open a new Zed window |
 
-快捷键的 `task_name` 必须与 `tasks.json` 的 `label` 完全一致，包括大小写和括号。
+A binding's `task_name` must exactly match its task's `label`, including case and parentheses.
 
-## 怎么唤醒和交互
+## Open and switch projects
 
-### 快捷键
+### Keyboard shortcuts
 
-按 `cmd-alt-o` 后，Zed 会打开并聚焦一个集成终端，终端中出现 `Open project` 选择器：
+Press `cmd-alt-o` to open and focus an integrated terminal with the `Open project` picker:
 
-1. 直接输入项目名或路径片段进行过滤；
-2. 用上下方向键移动选择；
-3. 按 Enter 打开项目；
-4. 按 Ctrl-C 取消。
+1. Type part of a project name or path to filter.
+2. Move the selection with the up and down arrow keys.
+3. Press Enter to open the selected project.
+4. Press Ctrl-C to cancel.
 
-选择完成后，任务会执行 `zed --reuse <项目路径>`。`cmd-alt-shift-o` 的交互相同，但执行的是 `zed --new <项目路径>`。
+The task runs `zed --reuse <project-path>` after selection. `cmd-alt-shift-o` uses the same picker and runs `zed --new <project-path>`.
 
 ### Command Palette
 
-不使用快捷键时：
+Without a shortcut:
 
-1. 按 `cmd-shift-p`；
-2. 运行 `task: spawn`；
-3. 搜索并选择 `Project Manager: Switch (reuse)`。
+1. Press `cmd-shift-p`.
+2. Run `task: spawn`.
+3. Find and select `Project Manager: Switch (reuse)`.
 
-这也是排查快捷键问题时最有用的入口：如果 Task Picker 里能看到任务，说明 `tasks.json` 正常，问题位于 keymap；如果看不到，先修复 `tasks.json`。
+This is also useful for troubleshooting: if the task appears and runs correctly, check the keymap. If it is missing, check the global task configuration first.
 
 ### Zed Agent / MCP
 
-在 Agent Panel 中可以直接说：
+Install the development extension and configure its local executable as described in the [README](../README.md#install-the-development-extension-in-zed). In the Agent Panel, ask:
 
 ```text
-使用 project-manager 列出项目
-使用 project-manager 刷新项目缓存
-使用 project-manager 在当前窗口打开 zed-project-manager
+Use mcp-server-project-manager to list my projects.
+Use mcp-server-project-manager to refresh the project cache.
+Use mcp-server-project-manager to open zed-project-manager in the current window.
 ```
 
-Agent 会调用 `list_projects`、`refresh_projects` 或 `open_project`，并在真正打开项目前显示工具调用审批。MCP 入口不会显示终端选择器，它适合用自然语言指定项目。
+The Agent calls `list_projects`, `refresh_projects`, or `open_project`. Tool approval depends on your Zed permissions settings. This entry point does not display the terminal picker; it lets you name a project in natural language.
 
-### 终端 CLI
+### Migrate from the old development extension
+
+Version `0.3.0` changes the extension ID and context server key from `project-manager` to `mcp-server-project-manager`, with the display name **Project Manager MCP Server**. Back up your Zed settings and move the entire object at `context_servers.project-manager` to the new key. Preserve all existing fields, including `binary_path` and `config_path` inside `settings`. If the new key already exists, reconcile its fields before replacing anything.
+
+Install the new development extension, verify that the new server starts, then uninstall the old `project-manager` development extension and remove its obsolete settings entry. The npm package name, `zpm` command, configuration/cache files, MCP tool names, Task labels, and shortcuts do not change. See the [publishing guide](publishing.md) for the full validation workflow.
+
+### Terminal CLI
 
 ```sh
-zpm open                  # 交互搜索，当前窗口打开
-zpm open my-project       # 按名称或路径匹配
-zpm open my-project --new # 新窗口打开
-zpm scan                  # 重新扫描
-zpm list                  # 查看缓存
+zpm open                  # Interactive search, reusing the current window
+zpm open my-project       # Match a project by name or path
+zpm open my-project --new # Open in a new window
+zpm scan                  # Scan again
+zpm list                  # Inspect the cache
 ```
 
-## 常见问题
+## Troubleshooting
 
-### 按 `cmd-alt-o` 没有反应
+### Nothing happens after pressing `cmd-alt-o`
 
-先运行 Command Palette 中的 `task: spawn`：
+Run `task: spawn` from the Command Palette:
 
-- 看不到 `Project Manager: Switch (reuse)`：全局 `tasks.json` 缺失、位置不对，或任务 label 不匹配；
-- 能看到且手动运行正常：检查 `~/.config/zed/keymap.json` 中的 binding；
-- 快捷键仍被其他动作占用：运行 `dev: open key context view` 检查当前 context 和快捷键冲突。
+- If `Project Manager: Switch (reuse)` is missing, check the global `tasks.json` location and task labels.
+- If the task appears and works manually, check the binding in `~/.config/zed/keymap.json`.
+- If another action still intercepts the shortcut, run `dev: open key context view` to inspect the active context and conflicts.
 
-### 终端提示 `zpm: command not found`
+### The terminal reports `zpm: command not found`
 
 ```sh
 command -v zpm
-npm link
 ```
 
-Zed Task 使用 login shell。确保修改 PATH 的配置位于 `.zprofile`、`.zshrc` 或对应 shell 的启动文件中，保存后新建一个 Zed 终端再试。
+For a source installation, run `npm link` from the built checkout. For a published installation, reinstall the desired published npm version. Ensure that your shell startup files, such as `.zprofile` or `.zshrc`, make npm's global executable directory available to Zed's terminal. Open a new Zed terminal after changing `PATH`.
 
-### 选择器为空
+### The picker is empty
 
 ```sh
 zpm config-path
@@ -177,8 +186,12 @@ zpm scan
 zpm list
 ```
 
-确认配置中的 `roots` 存在，且 `maxDepth` 足以覆盖仓库所在层级。
+Check that the configured roots exist and `maxDepth` reaches the repository directories. Enable `nestedRepositories` if the projects are inside another repository.
 
-### Agent 中看到的项目和快捷键看到的不一致
+### The Agent and shortcuts list different projects
 
-快捷键/CLI 默认读取 `~/.config/zed-project-manager/config.json`；MCP 可以通过 Zed settings 的 `config_path` 指向其他配置。建议两者使用同一个持久配置文件，不要长期指向 `/tmp` 下的测试配置。
+The CLI and shortcuts default to `~/.config/zed-project-manager/config.json`; MCP can use another configuration through `settings.config_path` in Zed. Point both entry points at the same persistent configuration. Avoid keeping a temporary configuration under `/tmp` as your regular setup.
+
+### The new development extension cannot start
+
+If the checkout's npm version has not been published, set an absolute `settings.binary_path` under `context_servers.mcp-server-project-manager` to the locally built `zpm`. Check that `zpm --version` reports the checkout's version and that the executable exists. When using automatic installation instead, confirm that the exact version pinned by the extension is available on npm. Verify that your settings object was moved to the new key, then inspect `zed: open log`. Build prerequisites and validation steps are in the [publishing guide](publishing.md).
